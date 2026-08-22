@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SportsEComm.Api/SportsEComm.Api.csproj" />
+  <Project Path="SportsEComm.Chatbot/SportsEComm.Chatbot.csproj" />
+  <Project Path="SportsEComm.McpServer/SportsEComm.McpServer.csproj" />
+</Solution>
