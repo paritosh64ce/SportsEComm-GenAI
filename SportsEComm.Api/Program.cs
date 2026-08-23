@@ -15,13 +15,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     // Attempt to resolve Microsoft.OpenApi types at runtime. If unavailable, skip security wiring to avoid throwing.
-    Type openApiInfoType = null;
-    Type openApiSecuritySchemeType = null;
-    Type openApiReferenceType = null;
-    Type openApiSecurityRequirementType = null;
-    Type parameterLocationType = null;
-    Type securitySchemeTypeEnum = null;
-    Type referenceTypeEnum = null;
+    Type? openApiInfoType = null;
+    Type? openApiSecuritySchemeType = null;
+    Type? openApiReferenceType = null;
+    Type? openApiSecurityRequirementType = null;
+    Type? parameterLocationType = null;
+    Type? securitySchemeTypeEnum = null;
+    Type? referenceTypeEnum = null;
 
     try
     {

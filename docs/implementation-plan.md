@@ -12,11 +12,16 @@ This project showcases AI-driven capabilities within a modern sports eCommerce p
   - **Features**: Product catalog management, customer order management, and secure order placement endpoints.
 
 - **MCP Server (`SportsEComm.McpServer/`)**:
-  - **Framework**: .NET 10 / Node.js MCP server implementation exposing tools for the AI agent.
-  - **Tools Exposed**:
-    - `list_products`: Search or list available sports merchandise, equipment, and apparel.
-    - `get_customer_orders`: Retrieve past and current orders for a given customer.
-    - `place_order`: Create a new order for specified products and quantities.
+  - **Framework**: .NET 10 MCP server that exposes domain "tools" (HTTP endpoints) for the AI agent and proxies calls to the backend API.
+  - **Tools / Endpoints Exposed (example)**:
+    - `GET /tools/list_products` -> proxies to `GET /api/products` on the backend
+    - `GET /tools/get_customer_orders/{customerId}` -> proxies to `GET /api/orders/{customerId}`
+    - `POST /tools/place_order` -> proxies to `POST /api/orders`
+    - `POST /tools/customer_login` -> proxies to `POST /api/customers/login` (returns JWT token)
+    - `GET /tools/cart` -> proxies to `GET /api/cart` (forwards Authorization header)
+    - `POST /tools/cart` -> proxies to `POST /api/cart` (forwards Authorization header)
+    - `DELETE /tools/cart/items/{productId}` -> proxies to `DELETE /api/cart/items/{productId}` (forwards Authorization header)
+  - **Configuration**: Backend API base URL is configured with the environment variable BACKEND_API_URL (default: http://localhost:5000). The MCP server forwards Authorization headers for protected endpoints and can later be extended to manage sessions, token caching, or to integrate directly with an LLM runtime via MCP transports (STDIO, SSE) or tool registration.
 
 - **Chatbot Project (`SportsEComm.Chatbot/`)**:
   - **Framework**: .NET 10 / Console or Web-based AI assistant client.
@@ -51,8 +56,9 @@ SportsEComm-GenAI/
      - `GET /api/orders/{customerId}`
      - `POST /api/orders`
 3. **MCP Server (`mcp-server`)**:
-   - Create MCP Server project to wrap backend API capabilities into tools (`list_products`, `get_customer_orders`, `place_order`).
-   - Configure transport (Stdio / SSE) for LLM communication.
+   - Create MCP Server project to expose domain tools as HTTP endpoints that proxy to the backend API (examples: `GET /tools/list_products`, `GET /tools/get_customer_orders/{customerId}`, `POST /tools/place_order`).
+   - Configure the backend URL via environment variable BACKEND_API_URL (default: http://localhost:5000).  
+   - Later: extend to support MCP transports (STDIO, SSE) or register tools directly with an LLM runtime as needed.
 4. **Chatbot (`chatbot`)**:
    - Implement AI client capable of tool calling via the MCP server.
    - Provide interactive chat loop for users to chat, browse products, view orders, and place orders.
