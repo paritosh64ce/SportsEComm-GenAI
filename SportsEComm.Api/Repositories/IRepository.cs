@@ -1,5 +1,3 @@
-using System.Linq.Expressions;
-
 namespace SportsEComm.Api.Repositories;
 
 public interface IRepository<T> where T : class

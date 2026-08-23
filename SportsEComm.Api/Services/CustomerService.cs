@@ -12,10 +12,12 @@ public interface ICustomerService
 public class CustomerService : ICustomerService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuthService _authService;
 
-    public CustomerService(IUnitOfWork unitOfWork)
+    public CustomerService(IUnitOfWork unitOfWork, IAuthService authService)
     {
         _unitOfWork = unitOfWork;
+        _authService = authService;
     }
 
     public async Task<IEnumerable<object>> GetAllCustomersAsync()
@@ -28,12 +30,14 @@ public class CustomerService : ICustomerService
     {
         var customers = await _unitOfWork.Customers.GetAllAsync();
         var customer = customers.FirstOrDefault(c => 
-            c.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase) && 
-            c.SecretKeyHash == request.SecretKey);
+            c.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase));
 
-        if (customer == null) return null;
+        if (customer == null || !customer.IsDemoLoginEnabled) return null;
 
-        var token = $"token-{customer.Id}-{Guid.NewGuid():N}";
+        var isValid = _authService.VerifySecretKey(request.SecretKey, customer.SecretKeyHash);
+        if (!isValid) return null;
+
+        var token = _authService.GenerateJwtToken(customer);
         return new LoginResponse(customer.Id, customer.Name, customer.Email, customer.Role, token);
     }
 }

@@ -80,13 +80,13 @@ The product catalog features high-end cricket gear with rich descriptions, prici
   - `GET /api/products/{id}`: Get product details.
 - **Customers / Auth**:
   - `GET /api/customers`: List demo customers.
-  - `POST /api/customers/login`: Authenticate customer using `{ "email": "...", "secretKey": "..." }`. Validates against encrypted/hashed keys stored in the database and returns a secure token or session ID.
-- **Orders & Cart**:
-  - `GET /api/cart?customerId={id}`: Retrieve customer shopping cart items.
-  - `POST /api/cart`: Add or update item quantity in the cart.
-  - `DELETE /api/cart/{customerId}/items/{productId}`: Remove item from cart.
-  - `GET /api/orders?customerId={id}`: Retrieve all orders placed by a specific customer (used by the chatbot when logged in).
-  - `POST /api/orders`: Place a new order from cart (or direct items) and clear the customer's cart upon successful placement.
+  - `POST /api/customers/login`: Authenticate customer using `{ "email": "...", "secretKey": "..." }`. Validates against hashed/encrypted secret keys stored in the database and returns a signed **JWT (JSON Web Token)**.
+- **Orders & Cart (Secured via JWT & HttpContext)**:
+  - `GET /api/cart`: Retrieve current authenticated customer's shopping cart items (extracted securely from JWT claims via HttpContext).
+  - `POST /api/cart`: Add or update item quantity in the authenticated customer's cart.
+  - `DELETE /api/cart/items/{productId}`: Remove item from the authenticated customer's cart.
+  - `GET /api/orders`: Retrieve all orders placed by the authenticated customer (extracted from JWT claims).
+  - `POST /api/orders`: Place a new order from cart and clear the customer's cart upon successful placement.
 
 ---
 

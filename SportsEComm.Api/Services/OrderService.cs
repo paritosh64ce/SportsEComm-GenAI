@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using SportsEComm.Api.DTOs;
 using SportsEComm.Api.Models;
 using SportsEComm.Api.Repositories;
 
@@ -8,15 +7,15 @@ namespace SportsEComm.Api.Services;
 public interface IOrderService
 {
     Task<IEnumerable<Order>> GetOrdersByCustomerIdAsync(int customerId);
-    Task<Order> PlaceOrderAsync(PlaceOrderRequest request);
+    Task<Order> PlaceOrderAsync(int customerId);
 }
 
 public class OrderService : IOrderService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly SportsEComm.Api.Data.SportsECommContext _context;
+    private readonly Data.SportsECommContext _context;
 
-    public OrderService(IUnitOfWork unitOfWork, SportsEComm.Api.Data.SportsECommContext context)
+    public OrderService(IUnitOfWork unitOfWork, Data.SportsECommContext context)
     {
         _unitOfWork = unitOfWork;
         _context = context;
@@ -33,12 +32,12 @@ public class OrderService : IOrderService
         return orders;
     }
 
-    public async Task<Order> PlaceOrderAsync(PlaceOrderRequest request)
+    public async Task<Order> PlaceOrderAsync(int customerId)
     {
         var cart = await _context.Carts
             .Include(c => c.Items)
             .ThenInclude(i => i.Product)
-            .FirstOrDefaultAsync(c => c.CustomerId == request.CustomerId);
+            .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 
         if (cart == null || !cart.Items.Any())
         {
@@ -49,10 +48,10 @@ public class OrderService : IOrderService
 
         var order = new Order
         {
-            CustomerId = request.CustomerId,
+            CustomerId = customerId,
             OrderDate = DateTime.UtcNow,
             TotalAmount = totalAmount,
-            Status = "Confirmed",
+            Status = OrderStatus.Confirmed,
             Items = cart.Items.Select(i => new OrderItem
             {
                 ProductId = i.ProductId,

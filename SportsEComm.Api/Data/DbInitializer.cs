@@ -9,6 +9,23 @@ public static class DbInitializer
     {
         await context.Database.EnsureCreatedAsync();
 
+        // Normalize existing customers: hash any plaintext secret keys in the database so secrets are never stored in cleartext.
+        var _passwordHasher_for_existing = new Microsoft.AspNetCore.Identity.PasswordHasher<Customer>();
+        var existingCustomers = await context.Customers.ToListAsync();
+        if (existingCustomers.Any())
+        {
+            var updatedExisting = false;
+            foreach (var ec in existingCustomers)
+            {
+                if (!string.IsNullOrWhiteSpace(ec.SecretKeyHash) && !ec.SecretKeyHash.StartsWith("AQAAAA"))
+                {
+                    ec.SecretKeyHash = _passwordHasher_for_existing.HashPassword(ec, ec.SecretKeyHash);
+                    updatedExisting = true;
+                }
+            }
+            if (updatedExisting) await context.SaveChangesAsync();
+        }
+
         if (await context.Products.AnyAsync())
         {
             return; // Already seeded
@@ -78,6 +95,9 @@ public static class DbInitializer
         context.Products.AddRange(products);
 
         // 2. Seed Customers (2011 India World Cup Squad Highlights)
+        var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Customer>();
+
+        // Seed demo customers (secrets specified here are temporary plaintexts and will be hashed before saving)
         var customers = new List<Customer>
         {
             new Customer { Name = "MS Dhoni", Email = "ms.dhoni@teamindia2011.com", SecretKeyHash = "dhoni7#cup", IsDemoLoginEnabled = true, Role = "Captain" },
@@ -92,6 +112,15 @@ public static class DbInitializer
             new Customer { Name = "Munaf Patel", Email = "munaf.patel@teamindia2011.com", SecretKeyHash = "squad2011", IsDemoLoginEnabled = false, Role = "Bowler" },
             new Customer { Name = "S Sreesanth", Email = "s.sreesanth@teamindia2011.com", SecretKeyHash = "squad2011", IsDemoLoginEnabled = false, Role = "Bowler" }
         };
+
+        // Ensure seeded plaintext secrets are hashed before insertion
+        foreach (var c in customers)
+        {
+            if (!string.IsNullOrWhiteSpace(c.SecretKeyHash) && !c.SecretKeyHash.StartsWith("AQAAAA"))
+            {
+                c.SecretKeyHash = passwordHasher.HashPassword(c, c.SecretKeyHash);
+            }
+        }
 
         context.Customers.AddRange(customers);
         await context.SaveChangesAsync();

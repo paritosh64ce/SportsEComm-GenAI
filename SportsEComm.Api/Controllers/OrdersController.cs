@@ -1,5 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SportsEComm.Api.DTOs;
 using SportsEComm.Api.Services;
 
 namespace SportsEComm.Api.Controllers;
@@ -16,10 +16,17 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult> GetOrders([FromQuery] int customerId)
+    [Authorize]
+    public async Task<ActionResult> GetOrders()
     {
         try
         {
+            var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            {
+                return Unauthorized(new { message = "Invalid token or customer ID claim." });
+            }
+
             var orders = await _orderService.GetOrdersByCustomerIdAsync(customerId);
             return Ok(orders);
         }
@@ -30,11 +37,18 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult> PlaceOrder([FromBody] PlaceOrderRequest request)
+    [Authorize]
+    public async Task<ActionResult> PlaceOrder()
     {
         try
         {
-            var order = await _orderService.PlaceOrderAsync(request);
+            var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            {
+                return Unauthorized(new { message = "Invalid token or customer ID claim." });
+            }
+
+            var order = await _orderService.PlaceOrderAsync(customerId);
             return Ok(order);
         }
         catch (InvalidOperationException ex)

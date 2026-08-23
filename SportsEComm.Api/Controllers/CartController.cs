@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SportsEComm.Api.DTOs;
 using SportsEComm.Api.Services;
@@ -16,10 +17,17 @@ public class CartController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult> GetCart([FromQuery] int customerId)
+    [Authorize]
+    public async Task<ActionResult> GetCart()
     {
         try
         {
+            var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            {
+                return Unauthorized(new { message = "Invalid token or customer ID claim." });
+            }
+
             var cart = await _cartService.GetCartByCustomerIdAsync(customerId);
             return Ok(cart);
         }
@@ -30,11 +38,18 @@ public class CartController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult> AddOrUpdateCartItem([FromBody] CartItemRequest request)
     {
         try
         {
-            var cart = await _cartService.AddOrUpdateCartItemAsync(request);
+            var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            {
+                return Unauthorized(new { message = "Invalid token or customer ID claim." });
+            }
+
+            var cart = await _cartService.AddOrUpdateCartItemAsync(customerId, request);
             return Ok(cart);
         }
         catch (KeyNotFoundException ex)
@@ -47,11 +62,18 @@ public class CartController : ControllerBase
         }
     }
 
-    [HttpDelete("{customerId}/items/{productId}")]
-    public async Task<ActionResult> RemoveCartItem(int customerId, int productId)
+    [HttpDelete("items/{productId}")]
+    [Authorize]
+    public async Task<ActionResult> RemoveCartItem(int productId)
     {
         try
         {
+            var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            {
+                return Unauthorized(new { message = "Invalid token or customer ID claim." });
+            }
+
             var cart = await _cartService.RemoveCartItemAsync(customerId, productId);
             return Ok(cart);
         }

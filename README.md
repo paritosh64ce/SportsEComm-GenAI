@@ -34,5 +34,6 @@ Please refer to the [Implementation Plan](docs/implementation-plan.md) for detai
 ## TODO
 
 - add proper jwt authentication, encrypt secret and store
+- user should be identified from jwt token and instead of using customerId in api url parameter, user/customer should be identified using http context, so that user only access his/her data, instead of to be able to provide someone else customer id in url param
 - add mcp server
 - add chatbot

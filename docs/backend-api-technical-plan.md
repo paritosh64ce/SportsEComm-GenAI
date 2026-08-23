@@ -32,8 +32,8 @@ backend-api/
 ## 2. Core Authentication & Authorization Strategy
 
 - **Secure Credential Authentication**: Customers authenticate via `POST /api/customers/login` providing both their registered Email and Secret Key.
-- **Encrypted Storage at Rest**: Secret keys are stored in the database using strong hashing (e.g., ASP.NET Core PasswordHasher / BCrypt) or encrypted representation.
-- **Authorization Guard**: Upon successful login, the API issues a session token/ID passed via headers (`Authorization: Bearer <token>` or `X-Customer-Token`). Cart and Order endpoints (`/api/cart`, `/api/orders`) enforce strict validation of this token.
+- **Encrypted & Hashed Storage at Rest**: Secret keys are stored securely in the database using ASP.NET Core `PasswordHasher<T>` (or AES encryption / bcrypt hashing) to ensure secrets are never stored in plain text.
+- **JWT (JSON Web Token) & HttpContext Identification**: Upon successful login, the API issues a signed JWT containing customer claims (ID, email, name). All protected endpoints (`/api/cart`, `/api/orders`) use `[Authorize]` and extract the customer ID directly from `HttpContext.User`, ensuring customers can only access and modify their own data without relying on user-supplied URL parameters.
 
 ---
 
@@ -81,12 +81,12 @@ public interface IUnitOfWork : IDisposable
 | **GET** | `/api/products` | Retrieve all cricket products | None |
 | **GET** | `/api/products/{id}` | Get product details by ID | Route ID |
 | **GET** | `/api/customers` | List all 2011 WC squad customers | None |
-| **POST** | `/api/customers/login` | Authenticate by email & secret key | `{ "email": "ms.dhoni@teamindia2011.com", "secretKey": "dhoni7#cup" }` |
-| **GET** | `/api/cart` | Get customer shopping cart | Query `?customerId={id}` |
-| **POST** | `/api/cart` | Add or update item in cart | `{ "customerId": 1, "productId": 2, "quantity": 2 }` |
-| **DELETE** | `/api/cart/{customerId}/items/{productId}` | Remove item from cart | Route params |
-| **GET** | `/api/orders` | Get orders for a customer | Query `?customerId={id}` |
-| **POST** | `/api/orders` | Place order (clears cart) | `{ "customerId": 1 }` or explicit items |
+| **POST** | `/api/customers/login` | Authenticate by email & secret key, returns JWT | `{ "email": "ms.dhoni@teamindia2011.com", "secretKey": "dhoni7#cup" }` |
+| **GET** | `/api/cart` | Get authenticated customer's shopping cart | Requires Bearer JWT token |
+| **POST** | `/api/cart` | Add or update item in cart | `{ "productId": 2, "quantity": 2 }` (customerId from JWT) |
+| **DELETE** | `/api/cart/items/{productId}` | Remove item from authenticated cart | Route param (customerId from JWT) |
+| **GET** | `/api/orders` | Get orders for the authenticated customer | Requires Bearer JWT token |
+| **POST** | `/api/orders` | Place order from cart (clears cart) | None (customerId from JWT) |
 
 ---
 

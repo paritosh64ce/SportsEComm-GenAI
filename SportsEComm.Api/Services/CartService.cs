@@ -8,16 +8,16 @@ namespace SportsEComm.Api.Services;
 public interface ICartService
 {
     Task<Cart> GetCartByCustomerIdAsync(int customerId);
-    Task<Cart> AddOrUpdateCartItemAsync(CartItemRequest request);
+    Task<Cart> AddOrUpdateCartItemAsync(int customerId, CartItemRequest request);
     Task<Cart> RemoveCartItemAsync(int customerId, int productId);
 }
 
 public class CartService : ICartService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly SportsEComm.Api.Data.SportsECommContext _context;
+    private readonly Data.SportsECommContext _context;
 
-    public CartService(IUnitOfWork unitOfWork, SportsEComm.Api.Data.SportsECommContext context)
+    public CartService(IUnitOfWork unitOfWork, Data.SportsECommContext context)
     {
         _unitOfWork = unitOfWork;
         _context = context;
@@ -40,15 +40,15 @@ public class CartService : ICartService
         return cart;
     }
 
-    public async Task<Cart> AddOrUpdateCartItemAsync(CartItemRequest request)
+    public async Task<Cart> AddOrUpdateCartItemAsync(int customerId, CartItemRequest request)
     {
         var cart = await _context.Carts
             .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.CustomerId == request.CustomerId);
+            .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 
         if (cart == null)
         {
-            cart = new Cart { CustomerId = request.CustomerId };
+            cart = new Cart { CustomerId = customerId };
             await _unitOfWork.Carts.AddAsync(cart);
             await _unitOfWork.CompleteAsync();
         }
@@ -83,7 +83,7 @@ public class CartService : ICartService
         }
 
         await _unitOfWork.CompleteAsync();
-        return await GetCartByCustomerIdAsync(request.CustomerId);
+        return await GetCartByCustomerIdAsync(customerId);
     }
 
     public async Task<Cart> RemoveCartItemAsync(int customerId, int productId)
