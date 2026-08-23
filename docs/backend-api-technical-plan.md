@@ -1,45 +1,51 @@
-# Backend API Technical & Architecture Plan
+﻿# Backend API Technical & Architecture Plan
 
-This document outlines the software design and architectural patterns for implementing the **Sports eCommerce Backend API (`backend-api/`)**. The design strictly adheres to **SOLID principles**, **Clean Architecture tenets**, **Generic Repository & Unit of Work patterns**, **Dependency Injection**, and **RESTful API design**.
+This document reflects the current implementation in `SportsEComm.Api/` and highlights the design patterns that are in place today. The project follows a layered service/repository structure, applies JWT-based authorization, and uses EF Core to persist the sports catalog and customer data.
 
 ---
 
-## 1. Architecture & Design Patterns
-
-To ensure high maintainability, testability, and extensibility, the backend API is structured into distinct architectural layers:
+## 1. Current architecture snapshot
 
 ```text
-backend-api/
-├── Controllers/          # REST endpoints (Presentation Layer)
-├── Data/                 # EF Core DbContext & Initializer (Infrastructure)
-├── Models/               # Domain Entities (Products, Customers, Orders)
-├── Repositories/         # Generic Repository & Unit of Work (Data Access Layer)
-└── Services/             # Business Logic Layer (Domain Services)
+SportsEComm.Api/
+├── Controllers/          # REST endpoints (presentation layer)
+├── Data/                 # DbContext + startup seeding logic
+├── DTOs/                 # Request/response payloads
+├── Extensions/           # Swagger and app setup helpers
+├── Models/               # Domain entities
+├── Repositories/         # Generic repository + unit of work
+├── Services/             # Business logic and auth helpers
+└── Program.cs            # Service registration and middleware setup
 ```
 
-### Key Patterns & Principles:
-1. **SOLID Principles**:
-   - **Single Responsibility (SRP)**: Controllers handle HTTP routing; Services handle business logic; Repositories handle data access.
-   - **Open/Closed (OCP)**: Interfaces (`IRepository<T>`, `IUnitOfWork`, `IOrderService`, etc.) allow new implementations or decorators without modifying existing core classes.
-   - **Dependency Inversion (DIP)**: High-level services depend on abstractions (`IRepository<T>`), wired up via built-in .NET Dependency Injection (`IServiceCollection`).
-2. **Generic Repository Pattern**:
-   - A generic interface `IRepository<T>` and implementation `Repository<T>` encapsulating standard CRUD operations (`GetByIdAsync`, `GetAllAsync`, `AddAsync`, `Update`, `Delete`).
-3. **Unit of Work Pattern**:
-   - `IUnitOfWork` coordinates writes across multiple repositories and manages transactions and `SaveChanges` atomically.
+### Design patterns currently used
+
+1. **Dependency injection**
+   - Services, repository abstractions, and EF Core context are registered in `Program.cs`.
+2. **Repository + Unit of Work**
+   - `IRepository<T>` and `IUnitOfWork` abstract the data access layer.
+3. **Service layer separation**
+   - Controllers delegate business logic to `ProductService`, `CustomerService`, `CartService`, and `OrderService`.
+4. **JWT authentication**
+   - `[Authorize]` routes read the customer identity from the token claims instead of trusting a route parameter.
 
 ---
 
-## 2. Core Authentication & Authorization Strategy
+## 2. Authentication & authorization strategy
 
-- **Secure Credential Authentication**: Customers authenticate via `POST /api/customers/login` providing both their registered Email and Secret Key.
-- **Encrypted & Hashed Storage at Rest**: Secret keys are stored securely in the database using ASP.NET Core `PasswordHasher<T>` (or AES encryption / bcrypt hashing) to ensure secrets are never stored in plain text.
-- **JWT (JSON Web Token) & HttpContext Identification**: Upon successful login, the API issues a signed JWT containing customer claims (ID, email, name). All protected endpoints (`/api/cart`, `/api/orders`) use `[Authorize]` and extract the customer ID directly from `HttpContext.User`, ensuring customers can only access and modify their own data without relying on user-supplied URL parameters.
+- **Secure credential authentication**: `POST /api/customers/login` accepts an email and secret key.
+- **Hashed storage at rest**: secret values are stored using ASP.NET Core `PasswordHasher<T>` in the `Customer.SecretKeyHash` field.
+- **JWT-based identity**: successful login returns a signed JWT containing customer claims such as `NameIdentifier`, `Email`, `Name`, and `Role`.
+- **Protected endpoint pattern**: all cart/order routes require the bearer token and resolve the customer ID from `HttpContext.User`.
+
+This prevents customer IDs from being passed in URL parameters and ensures each authenticated user only operates on their own cart and orders.
 
 ---
 
-## 3. Core Interfaces & Classes Design
+## 3. Core interfaces & classes
 
-### A. Generic Repository Interface
+### A. Generic repository interface
+
 ```csharp
 namespace SportsEComm.Api.Repositories;
 
@@ -53,7 +59,8 @@ public interface IRepository<T> where T : class
 }
 ```
 
-### B. Unit of Work Interface
+### B. Unit of work interface
+
 ```csharp
 namespace SportsEComm.Api.Repositories;
 
@@ -67,30 +74,36 @@ public interface IUnitOfWork : IDisposable
 }
 ```
 
-### C. Business Services
-- `IProductService`: Manages catalog queries and stock checks.
-- `ICustomerService`: Handles customer authentication (e.g. MS Dhoni, Sachin Tendulkar, Virat Kohli, Yuvraj Singh login) and profile lookups.
-- `IOrderService`: Validates order items, calculates totals, updates inventory, and persists orders via Unit of Work.
+### C. Business services
+
+- `IProductService`: list and lookup products
+- `ICustomerService`: authenticate users and return login responses
+- `ICartService`: manage customer-specific cart items
+- `IOrderService`: create and fetch orders based on the authenticated customer
+- `IAuthService`: hash secrets and generate JWT tokens
 
 ---
 
-## 3. REST API Endpoints Specification
+## 4. REST API endpoints specification
 
-| Method | Endpoint | Description | Request Payload / Params |
+| Method | Endpoint | Description | Notes |
 | :--- | :--- | :--- | :--- |
-| **GET** | `/api/products` | Retrieve all cricket products | None |
-| **GET** | `/api/products/{id}` | Get product details by ID | Route ID |
-| **GET** | `/api/customers` | List all 2011 WC squad customers | None |
-| **POST** | `/api/customers/login` | Authenticate by email & secret key, returns JWT | `{ "email": "ms.dhoni@teamindia2011.com", "secretKey": "dhoni7#cup" }` |
-| **GET** | `/api/cart` | Get authenticated customer's shopping cart | Requires Bearer JWT token |
-| **POST** | `/api/cart` | Add or update item in cart | `{ "productId": 2, "quantity": 2 }` (customerId from JWT) |
-| **DELETE** | `/api/cart/items/{productId}` | Remove item from authenticated cart | Route param (customerId from JWT) |
-| **GET** | `/api/orders` | Get orders for the authenticated customer | Requires Bearer JWT token |
-| **POST** | `/api/orders` | Place order from cart (clears cart) | None (customerId from JWT) |
+| **GET** | `/api/products` | Return all available cricket products | Public |
+| **GET** | `/api/products/{id}` | Return a product by ID | Public |
+| **GET** | `/api/customers` | Return seeded customer list | Public |
+| **POST** | `/api/customers/login` | Authenticate using email + secret key | Returns JWT |
+| **GET** | `/api/cart` | Return the current customer’s cart | Requires JWT |
+| **POST** | `/api/cart` | Add or update a cart item | Requires JWT |
+| **DELETE** | `/api/cart/items/{productId}` | Remove a cart item | Requires JWT |
+| **GET** | `/api/orders` | Return orders for the authenticated customer | Requires JWT |
+| **POST** | `/api/orders` | Place a new order from the authenticated cart | Requires JWT |
+
+Important: the protected order and cart routes do not use a customer ID URL parameter. The customer identity is read from the JWT claim set in `HttpContext.User`.
 
 ---
 
-## 5. API Documentation with Swagger / OpenAPI
+## 5. API documentation with Swagger / OpenAPI
 
-- **OpenAPI Integration**: Integrated via Swashbuckle / Microsoft OpenAPI packages.
-- **Interactive UI**: Available at root (`/swagger`) when running in Development mode, enabling full exploration of Products, Cart, Orders, and Customer login endpoints.
+- Swagger is enabled in development mode through `AddSwaggerWithJwt()`.
+- The API exposes interactive documentation at `/swagger` when the app is running in Development.
+- This includes customer login, product browsing, shopping cart management, and order placement endpoints.

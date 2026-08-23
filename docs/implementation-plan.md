@@ -1,64 +1,68 @@
-# Sports eCommerce GenAI Showcase - Implementation Plan
+# Sports eCommerce GenAI Showcase - Implementation Status & Plan
 
-This project showcases AI-driven capabilities within a modern sports eCommerce platform. It demonstrates how Large Language Models (LLMs) can interact via a Model Context Protocol (MCP) server with a robust .NET 10 backend API and SQL Server database to manage products, view customer orders, and place new orders conversationally.
+This document records the actual repository state and the remaining work for the sports eCommerce GenAI solution. The backend API and MCP proxy are implemented, while the chatbot layer is still a placeholder for future LLM-driven interactions.
 
 ---
 
-## 1. Architecture & Tech Stack
+## 1. Current project state
+
+- ✅ **Backend API**: implemented in `SportsEComm.Api/`
+- ✅ **MCP server**: implemented in `SportsEComm.McpServer/`
+- ⚠️ **Chatbot**: scaffolded in `SportsEComm.Chatbot/`, but not yet connected to any LLM or MCP tool-calling flow
+
+---
+
+## 2. Architecture & tech stack
 
 - **Backend API (`SportsEComm.Api/`)**:
   - **Framework**: .NET 10 Web API
-  - **Database / ORM**: SQL Server, Entity Framework Core 10
-  - **Features**: Product catalog management, customer order management, and secure order placement endpoints.
+  - **Database / ORM**: SQL Server LocalDB, Entity Framework Core 10
+  - **Features**: product catalog, customer authentication, JWT-authorized cart, and order endpoints
 
 - **MCP Server (`SportsEComm.McpServer/`)**:
-  - **Framework**: .NET 10 MCP server that exposes domain "tools" (HTTP endpoints) for the AI agent and proxies calls to the backend API.
-  - **Tools / Endpoints Exposed (example)**:
-    - `GET /tools/list_products` -> proxies to `GET /api/products` on the backend
-    - `GET /tools/get_customer_orders/{customerId}` -> proxies to `GET /api/orders/{customerId}`
-    - `POST /tools/place_order` -> proxies to `POST /api/orders`
-    - `POST /tools/customer_login` -> proxies to `POST /api/customers/login` (returns JWT token)
-    - `GET /tools/cart` -> proxies to `GET /api/cart` (forwards Authorization header)
-    - `POST /tools/cart` -> proxies to `POST /api/cart` (forwards Authorization header)
-    - `DELETE /tools/cart/items/{productId}` -> proxies to `DELETE /api/cart/items/{productId}` (forwards Authorization header)
-  - **Configuration**: Backend API base URL is configured with the environment variable BACKEND_API_URL (default: http://localhost:5000). The MCP server runs by default at http://localhost:6000 and forwards Authorization headers for protected endpoints. It can later be extended to manage sessions, token caching, or to integrate directly with an LLM runtime via MCP transports (STDIO, SSE) or tool registration.
+  - **Framework**: .NET 10 HTTP tool proxy
+  - **Behavior**: proxies requests to the API and forwards Authorization headers for protected routes
+  - **Configuration**: reads `BackendApi:Url` from `appsettings.json` or `BACKEND_API_URL`
 
 - **Chatbot Project (`SportsEComm.Chatbot/`)**:
-  - **Framework**: .NET 10 / Console or Web-based AI assistant client.
-  - **Features**: Integrates with an LLM (e.g., Semantic Kernel or OpenAI client) and connects to the MCP server to execute natural language prompts for shopping and order tracking.
+  - **Current state**: console skeleton only
+  - **Next step**: add an AI runtime or MCP client layer and conversational orchestration
 
 ---
 
-## 2. Project Structure
+## 3. Completed work
 
-```text
-SportsEComm-GenAI/
-├── README.md               # Root overview and quickstart guide
-├── docs/
-│   └── implementation-plan.md # This detailed plan
-├── SportsEComm.Api/        # .NET 10 Web API with EF Core & SQL Server
-├── SportsEComm.McpServer/  # Model Context Protocol server exposing eCommerce tools
-└── SportsEComm.Chatbot/    # AI Chatbot client interacting with the MCP server
-```
+1. **Root documentation and setup guidance**
+   - Created project README with local run instructions and current status.
+2. **Backend API implementation**
+   - Added a .NET 10 Web API with controllers, DTOs, services, repositories, and EF Core models.
+   - Configured JWT authentication and secure secret hashing with ASP.NET Core `PasswordHasher<T>`.
+   - Added LocalDB-based seeding for products and demo customers.
+3. **MCP proxy implementation**
+   - Exposed HTTP endpoints such as `/tools/list_products`, `/tools/customer_login`, `/tools/cart`, and `/tools/place_order`.
+   - Forwarded Authorization headers for protected backend calls.
+4. **Database bootstrap**
+   - `DbInitializer.InitializeAsync` ensures the database is created and seeded on app startup.
 
 ---
 
-## 3. Implementation Steps
+## 4. Remaining work
 
-1. **Root README & Documentation**:
-   - Create root `README.md` explaining the project architecture, prerequisites, and setup instructions.
-2. **Backend API (`backend-api`)**:
-   - Initialize .NET 10 Web API project.
-   - Configure Entity Framework Core with SQL Server (`SportsECommContext`).
-   - Define Models: `Product`, `Order`, `OrderItem`, `Customer`.
-   - Implement Controllers/Endpoints:
-     - `GET /api/products`
-     - `GET /api/orders/{customerId}`
-     - `POST /api/orders`
-3. **MCP Server (`mcp-server`)**:
-   - Create MCP Server project to expose domain tools as HTTP endpoints that proxy to the backend API (examples: `GET /tools/list_products`, `GET /tools/get_customer_orders/{customerId}`, `POST /tools/place_order`).
-   - Configure the backend URL via environment variable BACKEND_API_URL (default: http://localhost:5000).  
-   - Later: extend to support MCP transports (STDIO, SSE) or register tools directly with an LLM runtime as needed.
-4. **Chatbot (`chatbot`)**:
-   - Implement AI client capable of tool calling via the MCP server.
-   - Provide interactive chat loop for users to chat, browse products, view orders, and place orders.
+1. **Chatbot integration**
+   - Add an LLM client or Semantic Kernel integration.
+   - Implement tool-calling and conversational loops against the MCP server.
+2. **MCP UX hardening**
+   - Align the MCP routes with the final backend contract for order retrieval and cart actions.
+   - Add richer validation and safer error propagation.
+3. **Production hardening**
+   - Move JWT secrets and connection settings to secure configuration or secret stores.
+   - Evaluate deployment configuration for SQL Server, HTTPS, and environment-based settings.
+
+---
+
+## 5. Current execution order
+
+1. Start the backend API on `http://localhost:5000`.
+2. Start the MCP server on `http://localhost:6000`.
+3. Use the backend for product and auth flows.
+4. Extend the chatbot project to call the MCP endpoints for shopping and order actions.
