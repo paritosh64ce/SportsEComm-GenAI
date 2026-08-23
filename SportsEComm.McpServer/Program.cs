@@ -6,8 +6,10 @@ using SportsEComm.McpServer.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Backend API base URL is read from environment variable BACKEND_API_URL (default: http://localhost:5000)
-var backendApiUrl = Environment.GetEnvironmentVariable("BACKEND_API_URL") ?? "http://localhost:5000";
+// Backend API base URL is read from configuration (BackendApi:Url), fallback to environment variable BACKEND_API_URL, then a hardcoded default
+var backendApiUrl = builder.Configuration["BackendApi:Url"]
+                    ?? Environment.GetEnvironmentVariable("BACKEND_API_URL")
+                    ?? "http://localhost:5000";
 
 builder.Services.AddHttpClient("backend", client => client.BaseAddress = new Uri(backendApiUrl));
 

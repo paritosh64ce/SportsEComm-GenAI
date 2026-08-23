@@ -30,6 +30,22 @@ SportsEComm-GenAI/
 
 Please refer to the [Implementation Plan](docs/implementation-plan.md) for detailed setup instructions, database migrations, and running the individual components.
 
+### Running the services locally (ports)
+
+- Backend API (SportsEComm.Api):
+  - HTTP: http://localhost:5000
+  - HTTPS: https://localhost:5001
+  - Run: dotnet run --project SportsEComm.Api --urls "http://localhost:5000;https://localhost:5001"
+
+- MCP Server (SportsEComm.McpServer):
+  - HTTP: http://localhost:6000
+  - Run: dotnet run --project SportsEComm.McpServer --urls "http://localhost:6000"
+
+Notes:
+- MCP server reads the backend API base URL from appsettings.json (BackendApi:Url) or the BACKEND_API_URL environment variable. By default the MCP server points to http://localhost:5000.
+- Start the Backend API first so the MCP server can successfully proxy requests to it.
+
+
 
 ## TODO
 

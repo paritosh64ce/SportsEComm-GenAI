@@ -21,7 +21,7 @@ This project showcases AI-driven capabilities within a modern sports eCommerce p
     - `GET /tools/cart` -> proxies to `GET /api/cart` (forwards Authorization header)
     - `POST /tools/cart` -> proxies to `POST /api/cart` (forwards Authorization header)
     - `DELETE /tools/cart/items/{productId}` -> proxies to `DELETE /api/cart/items/{productId}` (forwards Authorization header)
-  - **Configuration**: Backend API base URL is configured with the environment variable BACKEND_API_URL (default: http://localhost:5000). The MCP server forwards Authorization headers for protected endpoints and can later be extended to manage sessions, token caching, or to integrate directly with an LLM runtime via MCP transports (STDIO, SSE) or tool registration.
+  - **Configuration**: Backend API base URL is configured with the environment variable BACKEND_API_URL (default: http://localhost:5000). The MCP server runs by default at http://localhost:6000 and forwards Authorization headers for protected endpoints. It can later be extended to manage sessions, token caching, or to integrate directly with an LLM runtime via MCP transports (STDIO, SSE) or tool registration.
 
 - **Chatbot Project (`SportsEComm.Chatbot/`)**:
   - **Framework**: .NET 10 / Console or Web-based AI assistant client.

@@ -80,7 +80,7 @@ namespace SportsEComm.McpServer.Extensions
                 return Results.Content(content, contentType);
             });
 
-            app.MapGet("/", () => Results.Text("SportsEComm MCP Server - tools proxy. Configure BACKEND_API_URL to point to the backend API."));
+            app.MapGet("/", () => Results.Text("SportsEComm MCP Server - tools proxy. Configure BACKEND_API_URL or BackendApi:Url in appsettings.json to point to the backend API (default http://localhost:5000). MCP server typically runs at http://localhost:6000."));
         }
     }
 }
