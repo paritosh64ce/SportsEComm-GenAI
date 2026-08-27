@@ -1,116 +1,91 @@
-# Sports eCommerce GenAI Showcase 🏈⚽🏀
+# Sports eCommerce GenAI Showcase 🏏
 
-This repository demonstrates a .NET 10 sports eCommerce solution that combines a backend API, an MCP-style proxy server, and a future-ready chatbot integration. The implemented backend currently supports product browsing, customer authentication, cart management, and protected order workflows using JWT-based authorization.
+A .NET 10 demo that shows how a **Small Language Model (SLM)** running entirely on your local machine can drive a real shopping experience — browsing products, managing a cart, and placing orders — entirely through natural language.
 
----
+> **What is an SLM?**  
+> A Small Language Model is a compact AI model (typically ≤ 13 B parameters) that runs efficiently on a laptop or workstation without cloud APIs, GPU clusters, or internet access. This demo uses **Mistral 7B** (7 billion parameters) served locally via **Ollama** — the same pattern that works for on-premise, air-gapped, or privacy-sensitive deployments.
 
-## Current implementation status
+The stack has three layers:
 
-- ✅ **Backend API**: implemented in `SportsEComm.Api/`
-- ✅ **MCP proxy server**: implemented in `SportsEComm.McpServer/`
-- ⚠️ **Chatbot client**: scaffolded in `SportsEComm.Chatbot/` but not yet connected to an LLM or MCP flow
-
----
-
-## Architecture & tech stack
-
-- **Backend API (`SportsEComm.Api/`)**:
-  - **Framework**: .NET 10 Web API
-  - **Database / ORM**: SQL Server LocalDB via Entity Framework Core 10
-  - **Features**: product catalog, customer login, JWT-authenticated cart, and order APIs
-
-- **MCP Server (`SportsEComm.McpServer/`)**:
-  - **Framework**: .NET 10 minimal HTTP proxy that exposes tool-style endpoints for the backend API
-  - **Configuration**: reads `BackendApi:Url` from `appsettings.json` or the `BACKEND_API_URL` environment variable
-  - **Default URLs**: backend `http://localhost:5000`, MCP server `http://localhost:6000`
-
-- **Chatbot Project (`SportsEComm.Chatbot/`)**:
-  - **Current state**: a minimal .NET 10 console scaffold (`Hello, World!`)
-  - **Planned role**: connect to the MCP server and enable natural-language shopping flows
+- **Backend API** — REST endpoints with JWT auth, EF Core, SQL Server LocalDB
+- **MCP Server** — a lightweight tool proxy the SLM calls instead of the API directly
+- **Chatbot Console** — orchestrates conversation: sends prompts to the SLM, detects tool calls, invokes MCP, feeds results back, prints the final response
 
 ---
 
-## 📂 Repository structure
+## Status
 
-```text
+| Component | Status |
+|-----------|--------|
+| `SportsEComm.Api` | ✅ Complete — products, auth, cart, orders |
+| `SportsEComm.McpServer` | ✅ Complete — full tool proxy over HTTP |
+| `SportsEComm.Chatbot` | ✅ Complete — SLM orchestration with Mistral 7B (Ollama) |
+
+---
+
+## Repository layout
+
+```
 SportsEComm-GenAI/
-├── README.md                       # Project overview and local run instructions
+├── SportsEComm.Api/            # .NET 10 Web API (EF Core, JWT)
+├── SportsEComm.McpServer/      # MCP-style HTTP tool proxy
+├── SportsEComm.Chatbot/
+│   ├── SportsEComm.Chatbot.Common/   # ModelClient, McpClient, ConversationManager
+│   └── SportsEComm.Chatbot.Console/  # Entry point (console UI)
 ├── docs/
-│   ├── implementation-plan.md      # Status + roadmap notes
-│   ├── backend-api-plan.md         # Database and seed data plan/status
-│   └── backend-api-technical-plan.md # API design and endpoint plan
-├── SportsEComm.Api/               # .NET 10 Web API with EF Core and JWT auth
-├── SportsEComm.McpServer/         # MCP-style tool proxy to the backend API
-├── SportsEComm.Chatbot/           # Stub project for future LLM integration
-├── SportsEComm-GenAI.slnx         # Solution file
-└── LICENSE
+│   ├── architecture.md         # System design & component diagram
+│   ├── api-reference.md        # All REST & MCP endpoints
+│   ├── chatbot.md              # Chatbot internals & conversation flow
+│   └── seed-data.md            # Demo customers & product catalog
+├── SportsEComm-GenAI.slnx
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting started
+## Quick start
 
-### Prerequisites
-
+**Prerequisites**
 - .NET 10 SDK
-- SQL Server LocalDB (the API uses `Server=(localdb)\mssqllocaldb;Database=SportsECommDb;Trusted_Connection=True;MultipleActiveResultSets=true` by default)
-
-### Build the solution
-
-```bash
-dotnet build "SportsEComm-GenAI.slnx"
-```
-
-### Run the backend API
+- SQL Server LocalDB
+- [Ollama](https://ollama.com) with `mistral:7b` pulled
 
 ```bash
-dotnet run --project SportsEComm.Api --urls "http://localhost:5000;https://localhost:5001"
-```
+# 1 — start the backend API
+dotnet run --project SportsEComm.Api --urls "http://localhost:5000"
 
-### Run the MCP server
-
-```bash
+# 2 — start the MCP tool proxy
 dotnet run --project SportsEComm.McpServer --urls "http://localhost:6000"
+
+# 3 — run the chatbot
+dotnet run --project SportsEComm.Chatbot/SportsEComm.Chatbot.Console
 ```
 
-### Run the chatbot project
-
-```bash
-dotnet run --project SportsEComm.Chatbot
-```
-
-Current chatbot output is only a placeholder message and is not yet integrated with the backend or MCP server.
+> The API auto-creates and seeds the database on first run. No migrations needed.
 
 ---
 
-## Authenticated API flow
+## Try it
 
-The backend currently follows a JWT-based flow:
+Once all three services are running, type a message in the console:
 
-- `POST /api/customers/login` with `{ "email": "...", "secretKey": "..." }`
-  - Validates against demo customer credentials seeded in the database
-  - Returns a signed JWT token
-- Protected endpoints require the bearer token and resolve the customer ID from `HttpContext.User`
+```
+You: show me cricket bats
+You: /login ms.dhoni@teamindia2011.com dhoni7#cup
+You: add the MSD bat to my cart
+You: place my order
+You: /exit
+```
 
-### Core protected endpoints
-
-- `GET /api/cart`
-- `POST /api/cart`
-- `DELETE /api/cart/items/{productId}`
-- `GET /api/orders`
-- `POST /api/orders`
-
-### Public endpoints
-
-- `GET /api/products`
-- `GET /api/products/{id}`
-- `GET /api/customers`
-- `POST /api/customers/login`
+See [docs/seed-data.md](docs/seed-data.md) for all demo login credentials.
 
 ---
 
-## Current gaps
+## Docs
 
-- The chatbot project still needs a real AI orchestration layer and MCP client implementation.
-- The MCP server is functional as a proxy, but the final conversational experience still needs to be implemented on top of it.
-- The current backend intentionally uses JWT identity instead of customer ID route parameters for authorization.
+| Document | What's inside |
+|----------|---------------|
+| [architecture.md](docs/architecture.md) | Components, data flow, design decisions |
+| [api-reference.md](docs/api-reference.md) | Every REST and MCP endpoint |
+| [chatbot.md](docs/chatbot.md) | How the chatbot orchestrates LLM + MCP |
+| [seed-data.md](docs/seed-data.md) | Demo customers and product catalog |

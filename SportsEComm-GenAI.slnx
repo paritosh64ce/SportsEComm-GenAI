@@ -1,5 +1,8 @@
 <Solution>
+  <Folder Name="/SportsEComm.Chatbot/">
+    <Project Path="SportsEComm.Chatbot/SportsEComm.Chatbot.Common/SportsEComm.Chatbot.Common.csproj" />
+    <Project Path="SportsEComm.Chatbot/SportsEComm.Chatbot.Console/SportsEComm.Chatbot.Console.csproj" />
+  </Folder>
   <Project Path="SportsEComm.Api/SportsEComm.Api.csproj" />
-  <Project Path="SportsEComm.Chatbot/SportsEComm.Chatbot.csproj" />
   <Project Path="SportsEComm.McpServer/SportsEComm.McpServer.csproj" />
 </Solution>

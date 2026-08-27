@@ -13,6 +13,15 @@ var backendApiUrl = builder.Configuration["BackendApi:Url"]
 
 builder.Services.AddHttpClient("backend", client => client.BaseAddress = new Uri(backendApiUrl));
 
+// Demo uses HTTP only — to call the API over HTTPS uncomment the block below and comment out the line above
+// builder.Services.AddHttpClient("backend", client => client.BaseAddress = new Uri(backendApiUrl))
+//     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+//     {
+//         // Accept the local dev HTTPS certificate (self-signed) for localhost
+//         ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+//     });
+
+
 var app = builder.Build();
 
 // Map tool endpoints (moved to Extensions/ToolsEndpoints.cs)
